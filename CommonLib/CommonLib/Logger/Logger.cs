@@ -20,7 +20,6 @@ namespace CommonLib.Logger
         /// 日志文件的全路径
         /// </summary>
         private static string _logFilePath;
-        private static string _logFileDir;
         /// <summary>
         /// 日志等级
         /// </summary>
@@ -46,7 +45,6 @@ namespace CommonLib.Logger
                                      $"{DateTime.Now:yyyy_MM_dd}" :
                                      $"{value}_{DateTime.Now:yyyy_MM_dd}";
                 _logFilePath = Path.Combine(appPath, "Log", logFileName + ".log");
-                _logFileDir = Path.Combine(appPath, "Log");
             }
         }
 
@@ -76,7 +74,8 @@ namespace CommonLib.Logger
         /// </summary>
         public static void Start()
         {
-            if (!Directory.Exists(_logFilePath)) Directory.CreateDirectory(_logFileDir);
+            string logDirectory = Path.GetDirectoryName(_logFilePath);
+            if (!Directory.Exists(logDirectory)) Directory.CreateDirectory(logDirectory);
             Task.Run(WriteLogToFile);
             IsSrart = true;
         }
@@ -142,32 +141,33 @@ namespace CommonLib.Logger
 
         #endregion
 
-        /// <summary>
-        /// 日志信息结构体
-        /// </summary>
-        protected struct SLogInfo
-        {
-            /// <summary>
-            /// 日志发生的时间
-            /// </summary>
-            public DateTime eventTime { get; set; }
-            /// <summary>
-            /// 日志标题
-            /// </summary>
-            public string title { get; set; }
-            /// <summary>
-            /// 日志等级
-            /// </summary>
-            public LogLevel level { get; set; }
-            /// <summary>
-            /// 日志信息
-            /// </summary>
-            public string message { get; set; }
+    }
 
-            public override string ToString()
-            {
-                return $"{eventTime:yyyy-MM-dd HH:mm:ss:fff}\t{level}\t{title}\t{message}";
-            }
+    /// <summary>
+    /// 日志信息结构体
+    /// </summary>
+    public struct SLogInfo
+    {
+        /// <summary>
+        /// 日志发生的时间
+        /// </summary>
+        public DateTime eventTime { get; set; }
+        /// <summary>
+        /// 日志标题
+        /// </summary>
+        public string title { get; set; }
+        /// <summary>
+        /// 日志等级
+        /// </summary>
+        public LogLevel level { get; set; }
+        /// <summary>
+        /// 日志信息
+        /// </summary>
+        public string message { get; set; }
+
+        public override string ToString()
+        {
+            return $"{eventTime:yyyy-MM-dd HH:mm:ss:fff}\t{level}\t{title}\t{message}";
         }
     }
 
