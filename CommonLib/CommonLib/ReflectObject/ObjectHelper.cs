@@ -17,7 +17,7 @@ namespace CommonLib.ReflectObject
         /// </summary>
         /// <param name="obj">实例对象（包含属性）</param>
         /// <returns>属性名-值的字典</returns>
-        public static Dictionary<string, object> ConvertAttrToDic(object obj)
+        public static Dictionary<string, object> ConvertAttrToCollection(object obj)
         {
             Dictionary<string, object> dic = new Dictionary<string, object>();
             PropertyInfo[] propertyInfos = obj.GetType().GetProperties();
@@ -30,26 +30,48 @@ namespace CommonLib.ReflectObject
         }
 
         /// <summary>
+        /// 字典转实体类
+        /// </summary>
+        /// <typeparam name="T">泛型类</typeparam>
+        /// <param name="dict">字典</param>
+        /// <returns></returns>
+        public static T ParseDictionaryToObject<T>(Dictionary<string, object> dict)
+        {
+            T obj = Activator.CreateInstance<T>();
+            foreach (KeyValuePair<string, object> item in dict)
+            {
+                PropertyInfo propInfo = obj.GetType().GetProperty(item.Key);
+                if (propInfo == null) continue;
+                object value = Convert.ChangeType(item.Value, item.Value.GetType());
+                propInfo.SetValue(obj, value, null);
+            }
+            return obj;
+        }
+
+        /// <summary>
         /// 复制对象集合的属性值=>目标对象
         /// </summary>
         /// <param name="targetObj">目标对象</param>
-        /// <param name="isCaseSensitive">是否区分大小写</param>
+        /// <param name="ignoreProperty">忽略属性名（不需要赋值,可空）</param>
+        /// <param name="isCaseSensitive">属性名是否区分大小写</param>
         /// <param name="originObjs">对象集合（被复制属性值的对象集合）</param>
         /// <returns></returns>
-        public static bool CopyPropertyValue(object targetObj, bool isCaseSensitive = false, params object[] originObjs)
+        public static bool CopyPropertyValue(object targetObj, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
         {
             if (originObjs.Length == 0) return false;
+            ignoreProperty = ignoreProperty ?? new string[] { };
             try
             {
                 PropertyInfo[] propInfos = targetObj?.GetType().GetProperties();
                 for (int i = 0; i < propInfos.Length; i++)
                 {
-                    for (int j = 0; j < originObjs.Length; j++)
+                    for (int j = 0; j < originObjs?.Length; j++)
                     {
                         PropertyInfo[] originPorpInfos = originObjs[j].GetType().GetProperties();
                         PropertyInfo propInfo = isCaseSensitive ? originPorpInfos.FirstOrDefault(q => q.Name == propInfos[i].Name) :
                                                                   originPorpInfos.FirstOrDefault(q => q.Name.ToLower() == propInfos[i].Name.ToLower());
                         if (propInfo == null) continue;
+                        if (ignoreProperty.Contains(propInfo.Name)) continue;
                         if (propInfos[i].PropertyType != propInfo.PropertyType) continue;
                         object value = propInfo.GetValue(originObjs[j], null);
                         propInfos[i].SetValue(targetObj, value);
@@ -64,17 +86,19 @@ namespace CommonLib.ReflectObject
         }
 
         /// <summary>
-        /// 复制对象集合的属性值=>目标对象
+        /// 创建实例对象并复制其它对象的属性值
         /// </summary>
         /// <param name="objectFullName">类的完全限定名（即包括命名空间）</param>
-        /// <param name="isCaseSensitive">是否区分大小写</param>
+        /// <param name="ignoreProperty">忽略属性名（不需要赋值,可空）</param>
+        /// <param name="isCaseSensitive">属性名是否区分大小写</param>
         /// <param name="originObjs">对象集合（被复制属性值的对象集合）</param>
         /// <returns></returns>
-        public static bool CopyPropertyValue(string objectFullName, bool isCaseSensitive = false, params object[] originObjs)
+        public static T CopyPropertyValue<T>(string objectFullName, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
         {
-            object targetObj = Assembly.GetExecutingAssembly().CreateInstance(objectFullName);
-            if (targetObj == null) return false;
-            return CopyPropertyValue(targetObj, isCaseSensitive, originObjs);
+            Type type = Type.GetType(objectFullName);
+            object targetObj = Activator.CreateInstance(type);
+            CopyPropertyValue(targetObj, ignoreProperty, isCaseSensitive, originObjs);
+            return (T)targetObj;
         }
     }
 }
