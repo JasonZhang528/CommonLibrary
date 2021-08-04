@@ -100,5 +100,22 @@ namespace CommonLib.ReflectObject
             CopyPropertyValue(targetObj, ignoreProperty, isCaseSensitive, originObjs);
             return (T)targetObj;
         }
+
+        /// <summary>
+        /// 字典=>实例对象（属性不显示）
+        /// </summary>
+        /// <param name="propertyValueDic"></param>
+        /// <returns></returns>
+        public static object DynamicCreateObject(Dictionary<string, object> propertyValueDic)
+        {
+            dynamic dynamicObj = new System.Dynamic.ExpandoObject();
+            var collection = dynamicObj as ICollection<KeyValuePair<string, object>>;
+            foreach (var item in propertyValueDic)
+            {
+                var property = new KeyValuePair<string, object>(item.Key, item.Value);
+                collection.Add(property);
+            }
+            return dynamicObj;
+        }
     }
 }
