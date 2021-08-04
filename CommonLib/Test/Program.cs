@@ -20,6 +20,8 @@ namespace Test
             //string jon = JsonConvert.SerializeObject(obj);
 
             DynamicModel obj = new DynamicModel(dic);
+
+            var user = ObjectHelper.GetInstance().ParseDictionaryToObject<UserTest>(dic);
             
             Console.ReadKey();
         }

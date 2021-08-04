@@ -8,19 +8,47 @@ using System.Threading.Tasks;
 namespace CommonLib.ReflectObject
 {
     /// <summary>
-    /// 对象辅助类
+    /// 对象辅助类-单例模式
     /// </summary>
     public class ObjectHelper
     {
+        private static ObjectHelper helper = null;
+
+        /// <summary>
+        /// Private Constructor
+        /// </summary>
+        private ObjectHelper()
+        {
+
+        }
+
+        /// <summary>
+        /// 获取Object辅助工具的实例对象
+        /// </summary>
+        /// <returns></returns>
+        public static ObjectHelper GetInstance()
+        {
+            if (helper == null)
+            {
+                helper = new ObjectHelper();
+            }
+            return helper;
+        }
+
         /// <summary>
         /// 属性&值=>字典
         /// </summary>
         /// <param name="obj">实例对象（包含属性）</param>
         /// <returns>属性名-值的字典</returns>
-        public static Dictionary<string, object> ConvertAttrToCollection(object obj)
+        public Dictionary<string, object> ConvertAttrToCollection(object obj)
         {
+            Type type = obj.GetType();
+            if (!type.GetTypeInfo().IsClass)
+            {
+                throw new Exception($"{obj}不是一个实例化对象");
+            }
             Dictionary<string, object> dic = new Dictionary<string, object>();
-            PropertyInfo[] propertyInfos = obj.GetType().GetProperties();
+            PropertyInfo[] propertyInfos = type.GetProperties();
             foreach (var item in propertyInfos)
             {
                 object value = item.GetValue(obj, null);
@@ -35,12 +63,13 @@ namespace CommonLib.ReflectObject
         /// <typeparam name="T">泛型类</typeparam>
         /// <param name="dict">字典</param>
         /// <returns></returns>
-        public static T ParseDictionaryToObject<T>(Dictionary<string, object> dict)
+        public T ParseDictionaryToObject<T>(Dictionary<string, object> dict)
         {
             T obj = Activator.CreateInstance<T>();
+            Type type = obj.GetType();
             foreach (KeyValuePair<string, object> item in dict)
             {
-                PropertyInfo propInfo = obj.GetType().GetProperty(item.Key);
+                PropertyInfo propInfo = type.GetProperty(item.Key);
                 if (propInfo == null) continue;
                 object value = Convert.ChangeType(item.Value, item.Value.GetType());
                 propInfo.SetValue(obj, value, null);
@@ -56,7 +85,7 @@ namespace CommonLib.ReflectObject
         /// <param name="isCaseSensitive">属性名是否区分大小写</param>
         /// <param name="originObjs">对象集合（被复制属性值的对象集合）</param>
         /// <returns></returns>
-        public static bool CopyPropertyValue(object targetObj, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
+        public bool CopyPropertyValue(object targetObj, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
         {
             if (originObjs.Length == 0) return false;
             ignoreProperty = ignoreProperty ?? new string[] { };
@@ -93,7 +122,7 @@ namespace CommonLib.ReflectObject
         /// <param name="isCaseSensitive">属性名是否区分大小写</param>
         /// <param name="originObjs">对象集合（被复制属性值的对象集合）</param>
         /// <returns></returns>
-        public static T CopyPropertyValue<T>(string objectFullName, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
+        public T CopyPropertyValue<T>(string objectFullName, string[] ignoreProperty, bool isCaseSensitive = false, params object[] originObjs)
         {
             Type type = Type.GetType(objectFullName);
             object targetObj = Activator.CreateInstance(type);
@@ -102,11 +131,38 @@ namespace CommonLib.ReflectObject
         }
 
         /// <summary>
+        /// 判断对象属性是否包含目标值（模糊查询）
+        /// </summary>
+        /// <param name="obj">实例对象</param>
+        /// <param name="value">目标值</param>
+        /// <param name="excludeFields">排除检查的字段</param>
+        /// <returns>true=>实例对象存在包含目标值的属性；false=>不存在</returns>
+        public bool ObjectHasAttrValue(object obj, string value, params string[] excludeFields)
+        {
+            Type type = obj.GetType();
+            if (!type.GetTypeInfo().IsClass)
+            {
+                throw new Exception($"{obj}不是一个实例化对象");
+            }
+            value = value ?? "";
+            PropertyInfo[] propInfos = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var propInfo in propInfos)
+            {
+                if (excludeFields != null && excludeFields.Contains(propInfo.Name)) continue;
+                string attrValue = propInfo.GetValue(obj, null)?.ToString();
+                attrValue = attrValue ?? "";
+                if (attrValue.Contains(value))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// 字典=>实例对象（属性不显示）
         /// </summary>
         /// <param name="propertyValueDic"></param>
         /// <returns></returns>
-        public static object DynamicCreateObject(Dictionary<string, object> propertyValueDic)
+        public object DynamicCreateObject(Dictionary<string, object> propertyValueDic)
         {
             dynamic dynamicObj = new System.Dynamic.ExpandoObject();
             var collection = dynamicObj as ICollection<KeyValuePair<string, object>>;
