@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -34,6 +35,8 @@ namespace CommonLib.ReflectObject
             }
             return helper;
         }
+
+        #region 属性操作
 
         /// <summary>
         /// 属性&值=>字典
@@ -131,32 +134,107 @@ namespace CommonLib.ReflectObject
         }
 
         /// <summary>
-        /// 判断对象属性是否包含目标值（模糊查询）
+        /// 判断对象属性是否包含目标值（value为字符串=>模糊查询）
         /// </summary>
         /// <param name="obj">实例对象</param>
         /// <param name="value">目标值</param>
         /// <param name="excludeFields">排除检查的字段</param>
         /// <returns>true=>实例对象存在包含目标值的属性；false=>不存在</returns>
-        public bool ObjectHasAttrValue(object obj, string value, params string[] excludeFields)
+        public bool ObjectHasAttrValue(object obj, object value, params string[] excludeFields)
         {
             Type type = obj.GetType();
             if (!type.GetTypeInfo().IsClass)
             {
                 throw new Exception($"{obj}不是一个实例化对象");
             }
-            value = value ?? "";
-            PropertyInfo[] propInfos = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            Type valueType = value.GetType();
+            PropertyInfo[] propInfos = type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public);
             foreach (var propInfo in propInfos)
             {
+                if (propInfo.PropertyType != valueType) continue;
                 if (excludeFields != null && excludeFields.Contains(propInfo.Name)) continue;
-                string attrValue = propInfo.GetValue(obj, null)?.ToString();
-                attrValue = attrValue ?? "";
-                if (attrValue.Contains(value))
-                    return true;
+                object attrValue = propInfo.GetValue(obj, null);
+                if (attrValue == null) continue;
+                if (valueType == typeof(string))
+                {
+                    if (attrValue.ToString().Contains(value.ToString())) return true;
+                }
+                else
+                {
+                    if (attrValue == value) return true;
+                }
             }
             return false;
         }
 
+        #endregion
+
+        #region 反射方式调用方法
+
+        /// <summary>
+        /// 反射方式调用方法
+        /// </summary>
+        /// <param name="classFullName">类完全限定名</param>
+        /// <param name="methodName">方法名</param>
+        /// <param name="parameters">方法参数</param>
+        /// <returns></returns>
+        public object InvokeMethod(string classFullName, string methodName, params object[] parameters)
+        {
+            // 1.Load(命名空间名称)，GetType(命名空间.类名)
+            string namespaceName = classFullName.Substring(0, classFullName.LastIndexOf('.'));
+            Type type = Assembly.Load(namespaceName).GetType(classFullName);
+            //2.GetMethod(需要调用的方法名称)
+            MethodInfo methodInfo = type.GetMethod(methodName);
+            object result = null;
+            if (methodInfo.IsStatic)
+            {
+                //3.静态方法调用
+                result = methodInfo.Invoke(null, parameters);
+            }
+            else
+            {
+                //3.调用的实例化方法（非静态方法）需要创建类型的一个实例
+                object obj = Activator.CreateInstance(type);
+                //4.方法需要传入的参数
+                //5.调用方法，如果调用的是一个静态方法，就不需要第3步（创建类型的实例）
+                result = methodInfo.Invoke(obj, parameters);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 反射方式调用DLL中方法
+        /// </summary>
+        /// <param name="dllPath">dll文件全路径</param>
+        /// <param name="classFullName">类完全限定名</param>
+        /// <param name="methodName">方法名</param>
+        /// <param name="parameters">方法参数</param>
+        /// <returns></returns>
+        public object InvokeMethod(string dllPath, string classFullName, string methodName, params object[] parameters)
+        {
+            object result = null;
+            if (!File.Exists(dllPath)) return result;
+            // 1.Load(命名空间名称)，GetType(命名空间.类名)
+            Type type = Assembly.LoadFile(dllPath).GetType(classFullName);
+            //2.GetMethod(需要调用的方法名称)
+            MethodInfo methodInfo = type.GetMethod(methodName);
+            if (methodInfo.IsStatic)
+            {
+                //3.静态方法调用
+                result = methodInfo.Invoke(null, parameters);
+            }
+            else
+            {
+                //3.调用的实例化方法（非静态方法）需要创建类型的一个实例
+                object obj = Activator.CreateInstance(type);
+                //4.方法需要传入的参数
+                //5.调用方法，如果调用的是一个静态方法，就不需要第3步（创建类型的实例）
+                result = methodInfo.Invoke(obj, parameters);
+            }
+            return result;
+        }
+
+        #endregion
         /// <summary>
         /// 字典=>实例对象（属性不显示）
         /// </summary>
