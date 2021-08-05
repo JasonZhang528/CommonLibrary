@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CommonLib\CommonLibrary.csproj" />
+    <ProjectReference Include="..\CommonLib\CommonLib.csproj" />
   </ItemGroup>
 
 </Project>

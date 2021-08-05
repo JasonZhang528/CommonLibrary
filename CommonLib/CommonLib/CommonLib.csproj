@@ -3,7 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>CommonLib</RootNamespace>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ffmpeg.exe" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Mono.Cecil" Version="0.11.4" />
