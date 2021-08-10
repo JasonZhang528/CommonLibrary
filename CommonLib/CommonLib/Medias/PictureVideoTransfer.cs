@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CommonLib.Images
+namespace CommonLib.Media
 {
     public class PictureVideoTransfer
     {
