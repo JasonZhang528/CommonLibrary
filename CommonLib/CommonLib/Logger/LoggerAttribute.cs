@@ -9,16 +9,9 @@ using System.Threading.Tasks;
 namespace LoggerSpace
 {
 
-    public class LoggerAttribute : CecilAction
+    public class LoggerAttribute : ContextBoundObject
     {
 
-        public static void OnActionBefore(MethodBase mbBase, object[] args)
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-                Console.WriteLine(string.Format("{0}方法，第{1}参数是：{2}", mbBase.Name, i, args[i]));
-            }
-        }
     }
 
     public class CecilAction : Attribute

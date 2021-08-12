@@ -170,6 +170,9 @@ namespace CommonLib.ReflectObject
         #endregion
 
         #region 反射方式调用方法
+        /*
+         * Activator方式创建实例性能最好
+         */
 
         /// <summary>
         /// 反射方式调用方法
@@ -235,6 +238,7 @@ namespace CommonLib.ReflectObject
         }
 
         #endregion
+
         /// <summary>
         /// 字典=>实例对象（属性不显示）
         /// </summary>
