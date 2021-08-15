@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace CommonLib.Conversion
@@ -41,5 +43,20 @@ namespace CommonLib.Conversion
         /// <param name="stream"></param>
         /// <returns></returns>
         public static string ToString(this Stream stream) => Converter.StreamToString(stream);
+
+        /// <summary>
+        /// 转Json字符串
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static string ToJsonString(this object obj) => JsonConvert.SerializeObject(obj);
+
+        /// <summary>
+        /// Json字符串反序列化
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="jsonStr"></param>
+        /// <returns></returns>
+        public static T JsonToObject<T>(this string jsonStr) => (T)JsonConvert.DeserializeObject(jsonStr);
     }
 }
