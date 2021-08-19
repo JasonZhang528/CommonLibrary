@@ -27,14 +27,7 @@ namespace CommonLib.ReflectObject
         /// 获取Object辅助工具的实例对象
         /// </summary>
         /// <returns></returns>
-        public static ObjectHelper GetInstance()
-        {
-            if (helper == null)
-            {
-                helper = new ObjectHelper();
-            }
-            return helper;
-        }
+        public static ObjectHelper GetInstance() => helper ??= new();
 
         #region 属性操作
 

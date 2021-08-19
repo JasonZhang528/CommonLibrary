@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace CommonLib.Win32Api
 {
-    public partial class Win32Api
+    public class Win32ApiValue
     {
+
     }
 }
