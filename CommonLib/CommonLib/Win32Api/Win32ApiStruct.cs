@@ -197,4 +197,30 @@ namespace CommonLib.Win32Api
             Absolute = 0x8000
         }
     }
+
+    /// <summary>
+    /// Win32Api函数执行结果
+    /// </summary>
+    public struct SActionResult
+    {
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        public bool Flag { get; private set; }
+        /// <summary>
+        /// 执行结果信息
+        /// </summary>
+        public string Message { get; private set; }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="Flag"></param>
+        /// <param name="Message"></param>
+        public SActionResult(bool Flag, string Message)
+        {
+            this.Flag = Flag;
+            this.Message = Message;
+        }
+    }
 }

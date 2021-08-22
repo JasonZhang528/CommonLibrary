@@ -13,7 +13,10 @@ namespace Test
         {
             Console.WriteLine("Hello World!");
 
-            var rtemp = Win32ApiHelper.GetInstance().GetWindowsRectangle("芯享RCM");
+            var rtemp = Win32ApiHelper.IsExistWindow("微信", null);
+            int isSucceed = Win32ApiHelper.ShowWindowMinimized(rtemp);
+
+
             Console.ReadKey();
         }
     }

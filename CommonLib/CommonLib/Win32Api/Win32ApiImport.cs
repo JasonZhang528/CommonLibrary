@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace CommonLib.Win32Api
 {
+    /// <summary>
+    /// Win32Api Import Method
+    /// </summary>
     public class Win32ApiImport : Win32ApiStruct
     {
         #region User32.dll
@@ -25,7 +28,7 @@ namespace CommonLib.Win32Api
         /// <param name="uCmd">指定窗口与要获得句柄的窗口之间的关系（该参数值参考GetWindowCmd枚举）</param>
         /// <returns>返回值为窗口句柄（与指定窗口有特定关系的窗口不存在，则返回值为NULL）</returns>
         [DllImport("User32.dll", SetLastError = true)]
-        public static extern IntPtr GetWindow(IntPtr hWnd, GetWindowCmd uCmd);
+        protected static extern IntPtr GetWindow(IntPtr hWnd, GetWindowCmd uCmd);
 
         /// <summary>
         /// 根据窗口类名/标题名，获取窗口句柄
@@ -46,9 +49,9 @@ namespace CommonLib.Win32Api
         /// </summary>
         /// <param name="hwnd"></param>
         /// <param name="command">控制窗口的显示方式</param>
-        /// <returns></returns>
+        /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
         [DllImport("user32.dll", EntryPoint = "ShowWindow")]
-        private static extern int ShowWindow(int hwnd, WindowState command);
+        protected static extern int ShowWindow(IntPtr hwnd, WindowState command);
 
         /// <summary>
         /// 激活窗口
@@ -57,7 +60,7 @@ namespace CommonLib.Win32Api
         /// <remarks>窗口必须附加到调用线程的消息队列</remarks>
         /// <returns>true=>Success；false=>Failure</returns>
         [DllImport("User32.dll", EntryPoint = "SetActiveWindow")]
-        private static extern bool SetActiveWindow(IntPtr hWnd);
+        protected static extern bool SetActiveWindow(IntPtr hWnd);
 
         /// <summary>
         /// 将创建指定窗口的线程带到前台并激活该窗口
@@ -66,10 +69,10 @@ namespace CommonLib.Win32Api
         /// <returns>true=>Success；false=>Failure</returns>
         /// <remarks>键盘输入直接指向窗口，并为用户改变各种视觉提示;系统给创建前台窗口的线程分配的优先级略高于其他线程</remarks>
         [DllImport("User32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        protected static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("User32.dll")]
-        private static extern IntPtr GetActiveWindow();
+        protected static extern IntPtr GetActiveWindow();
 
         /// <summary>
         /// 将指定窗口标题栏的文本(如果有的话)复制到缓冲区中
@@ -90,10 +93,10 @@ namespace CommonLib.Win32Api
         /// <param name="hWnd">窗口句柄</param>
         /// <returns>窗口没有文本，则返回值为零</returns>
         [DllImport("User32.dll")]
-        public static extern int GetWindowTextLength(IntPtr hWnd);
+        protected static extern int GetWindowTextLength(IntPtr hWnd);
 
         [DllImport("User32.dll", CharSet = CharSet.Auto)]
-        public static extern int GetWindowThreadProcessId(IntPtr hwnd, out int ID);
+        protected static extern int GetWindowThreadProcessId(IntPtr hwnd, out int ID);
 
         /// <summary>
         /// 销毁指定的窗口
@@ -106,7 +109,7 @@ namespace CommonLib.Win32Api
         /// 3、DestroyWindow也会销毁由CreateDialog函数创建的非模态对话框。
         /// </remarks>
         [DllImport("User32.dll", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-        public static extern bool DestroyWindow(int hndw);
+        protected static extern bool DestroyWindow(int hndw);
 
         protected delegate bool EnumWindowsProc(IntPtr hWnd, int lParam);
         [DllImport("user32.dll", EntryPoint = "EnumChildWindows", ExactSpelling = true)]
@@ -158,7 +161,7 @@ namespace CommonLib.Win32Api
         /// <param name="lpPoint"></param>
         /// <returns></returns>
         [DllImport("user32.dll", EntryPoint = "ClientToScreen")]
-        public static extern int ClientToScreen(int hwnd, out POINT lpPoint);
+        protected static extern int ClientToScreen(int hwnd, out POINT lpPoint);
 
         /// <summary>
         /// 把屏幕坐标转化成相对当前窗体的坐标
@@ -167,7 +170,7 @@ namespace CommonLib.Win32Api
         /// <param name="lpPoint"></param>
         /// <returns></returns>
         [DllImport("user32.dll", EntryPoint = "ScreenToClient")]
-        public static extern int ScreenToClient(int hwnd, out POINT lpPoint);
+        protected static extern int ScreenToClient(int hwnd, out POINT lpPoint);
 
 
         #endregion

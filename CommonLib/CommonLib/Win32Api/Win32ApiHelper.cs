@@ -49,7 +49,7 @@ namespace CommonLib.Win32Api
         }
 
         /// <summary>
-        /// 移动光标至屏幕指定位置
+        /// 移动鼠标至屏幕指定位置
         /// </summary>
         /// <param name="x">屏幕坐标x</param>
         /// <param name="y">屏幕坐标y</param>
@@ -57,13 +57,15 @@ namespace CommonLib.Win32Api
         public bool SetCursorPosition(int x, int y) => SetCursorPos(x, y) != 0;
 
         /// <summary>
-        /// 判断窗口是否打开
+        /// 判断窗口是否存在
         /// </summary>
         /// <param name="winTitle">窗体标题</param>
         /// <param name="winClassName">窗体类名</param>
-        /// <returns>true=>已打开；false=>未打开</returns>
-        public bool IsOpenWindow(string winTitle, string winClassName)
+        /// <returns>返回已存在的窗体句柄（IntPtr.Zero=>不存在窗体）</returns>
+        /// <remarks>注意：1、窗体未显示也是存在的；2、参数可以二选一</remarks>
+        public IntPtr IsExistWindow(string winTitle, string winClassName)
         {
+            IntPtr targetIp = IntPtr.Zero;
             bool isNullStr1 = string.IsNullOrWhiteSpace(winTitle);
             bool isNullStr2 = string.IsNullOrWhiteSpace(winClassName);
             //1、获取桌面窗口的句柄
@@ -79,7 +81,7 @@ namespace CommonLib.Win32Api
                     int length = GetWindowTextLength(winPtr);
                     StringBuilder sbWinName = new StringBuilder(length + 1);
                     GetWindowText(winPtr, sbWinName, sbWinName.Capacity);
-                    isEqual = sbWinName.ToString() != winTitle;
+                    isEqual = sbWinName.ToString() == winTitle;
                 }
                 if (!isNullStr2)
                 {
@@ -94,13 +96,51 @@ namespace CommonLib.Win32Api
                 }
                 else
                 {
-                    return isEqual;
+                    targetIp = winPtr;
+                    break;
                 }
             }
-            return false;
+            return targetIp;
         }
+
+        /// <summary>
+        /// 显示窗口
+        /// </summary>
+        /// <param name="windowlp">需要显示的窗口句柄</param>
+        /// <remarks>注意：以原来的大小/位置显示</remarks>
+        /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
+        public SActionResult ShowWindowNormal(string winTitle)
+        {
+            IntPtr windowlp = IsExistWindow(winTitle, null);
+            if (windowlp == IntPtr.Zero)
+            {
+                return new SActionResult(false, $"不存在标题为“{winTitle}”的窗体！");
+            }
+            int rs = ShowWindow(windowlp, WindowState.SW_SHOWNORMAL);
+            string msg = rs > 0 ? "已打开以前可见的窗体" : "已打开以前不可见的窗体";
+            return new SActionResult(true, msg);
+        }
+
+        /// <summary>
+        /// 显示窗口
+        /// </summary>
+        /// <param name="windowlp">需要显示的窗口句柄</param>
+        /// <remarks>注意：最小化方式显示</remarks>
+        /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
+        public int ShowWindowMinimized(IntPtr windowlp) => ShowWindow(windowlp, WindowState.SW_SHOWMINIMIZED);
+
+        /// <summary>
+        /// 显示窗口
+        /// </summary>
+        /// <param name="windowlp">需要显示的窗口句柄</param>
+        /// <remarks>注意：最大化方式显示</remarks>
+        /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
+        public int ShowWindowMaximized(IntPtr windowlp) => ShowWindow(windowlp, WindowState.SW_SHOWMAXIMIZED);
+
+        //public int ShowWindow(IntPtr windowlp, WindowState windowState) => ShowWindow(windowlp, windowState);
+
         #endregion
 
-
     }
+
 }
