@@ -28,7 +28,7 @@ namespace CommonLib.Win32Api
         /// <param name="uCmd">指定窗口与要获得句柄的窗口之间的关系（该参数值参考GetWindowCmd枚举）</param>
         /// <returns>返回值为窗口句柄（与指定窗口有特定关系的窗口不存在，则返回值为NULL）</returns>
         [DllImport("User32.dll", SetLastError = true)]
-        protected static extern IntPtr GetWindow(IntPtr hWnd, GetWindowCmd uCmd);
+        protected static extern IntPtr GetWindow(IntPtr hWnd, WindowCmd uCmd);
 
         /// <summary>
         /// 根据窗口类名/标题名，获取窗口句柄

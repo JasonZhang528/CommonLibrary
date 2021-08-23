@@ -71,7 +71,7 @@ namespace CommonLib.Win32Api
             //1、获取桌面窗口的句柄
             IntPtr desktopPtr = GetDesktopWindow();
             //2、获得一个子窗口（这通常是一个顶层窗口，当前活动的窗口）
-            IntPtr winPtr = GetWindow(desktopPtr, GetWindowCmd.GW_CHILD);
+            IntPtr winPtr = GetWindow(desktopPtr, WindowCmd.GW_CHILD);
             //3、循环取得桌面下的所有子窗口
             while (winPtr != IntPtr.Zero)
             {
@@ -92,7 +92,7 @@ namespace CommonLib.Win32Api
                 if (!isEqual)
                 {
                     //4、继续获取下一个子窗口
-                    winPtr = GetWindow(winPtr, GetWindowCmd.GW_HWNDNEXT);
+                    winPtr = GetWindow(winPtr, WindowCmd.GW_HWNDNEXT);
                 }
                 else
                 {
@@ -109,16 +109,16 @@ namespace CommonLib.Win32Api
         /// <param name="windowlp">需要显示的窗口句柄</param>
         /// <remarks>注意：以原来的大小/位置显示</remarks>
         /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
-        public SActionResult ShowWindowNormal(string winTitle)
+        public SActionResult<string> ShowWindowNormal(string winTitle)
         {
             IntPtr windowlp = IsExistWindow(winTitle, null);
             if (windowlp == IntPtr.Zero)
             {
-                return new SActionResult(false, $"不存在标题为“{winTitle}”的窗体！");
+                return new SActionResult<string>(false, $"不存在标题为“{winTitle}”的窗体！");
             }
             int rs = ShowWindow(windowlp, WindowState.SW_SHOWNORMAL);
             string msg = rs > 0 ? "已打开以前可见的窗体" : "已打开以前不可见的窗体";
-            return new SActionResult(true, msg);
+            return new SActionResult<string>(true, msg);
         }
 
         /// <summary>
@@ -127,7 +127,17 @@ namespace CommonLib.Win32Api
         /// <param name="windowlp">需要显示的窗口句柄</param>
         /// <remarks>注意：最小化方式显示</remarks>
         /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
-        public int ShowWindowMinimized(IntPtr windowlp) => ShowWindow(windowlp, WindowState.SW_SHOWMINIMIZED);
+        public SActionResult<string> ShowWindowMinimized(string winTitle)
+        {
+            IntPtr windowlp = IsExistWindow(winTitle, null);
+            if (windowlp == IntPtr.Zero)
+            {
+                return new SActionResult<string>(false, $"不存在标题为“{winTitle}”的窗体！");
+            }
+            int rs = ShowWindow(windowlp, WindowState.SW_SHOWMINIMIZED);
+            string msg = rs > 0 ? "已最小化以前可见的窗体" : "已最小化以前不可见的窗体";
+            return new SActionResult<string>(true, msg);
+        }
 
         /// <summary>
         /// 显示窗口
@@ -135,10 +145,36 @@ namespace CommonLib.Win32Api
         /// <param name="windowlp">需要显示的窗口句柄</param>
         /// <remarks>注意：最大化方式显示</remarks>
         /// <returns>非零=>窗口以前是可见的；零=>窗口以前是隐藏的</returns>
-        public int ShowWindowMaximized(IntPtr windowlp) => ShowWindow(windowlp, WindowState.SW_SHOWMAXIMIZED);
+        public SActionResult<string> ShowWindowMaximized(string winTitle)
+        {
+            IntPtr windowlp = IsExistWindow(winTitle, null);
+            if (windowlp == IntPtr.Zero)
+            {
+                return new SActionResult<string>(false, $"不存在标题为“{winTitle}”的窗体！");
+            }
+            int rs = ShowWindow(windowlp, WindowState.SW_SHOWMAXIMIZED);
+            string msg = rs > 0 ? "已最大化以前可见的窗体" : "已最大化以前不可见的窗体";
+            return new SActionResult<string>(true, msg);
+        }
 
-        //public int ShowWindow(IntPtr windowlp, WindowState windowState) => ShowWindow(windowlp, windowState);
-
+        /// <summary>
+        /// 显示窗口
+        /// </summary>
+        /// <param name="winTitle">窗口标题</param>
+        /// <param name="windowState">窗口状态</param>
+        /// <returns></returns>
+        public SActionResult<string> ShowWindowByState(string winTitle, WindowState windowState)
+        {
+            IntPtr windowlp = IsExistWindow(winTitle, null);
+            if (windowlp == IntPtr.Zero)
+            {
+                return new SActionResult<string>(false, $"不存在标题为“{winTitle}”的窗体！");
+            }
+            int rs = ShowWindow(windowlp, windowState);
+            string msg = rs > 0 ? $"已按{Enum.GetName(windowState)}方式显示以前可见的窗体" :
+                                  $"已按{Enum.GetName(windowState)}方式显示以前不可见的窗体";
+            return new SActionResult<string>(true, msg);
+        }
         #endregion
 
     }

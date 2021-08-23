@@ -11,7 +11,7 @@ namespace CommonLib.Win32Api
         /// <summary>
         /// 窗口与要获得句柄的窗口之间的关系。
         /// </summary>
-        public enum GetWindowCmd : uint
+        public enum WindowCmd : uint
         {
             /// <summary>
             /// 返回的句柄标识了在Z序最高端的相同类型的窗口。
@@ -201,7 +201,7 @@ namespace CommonLib.Win32Api
     /// <summary>
     /// Win32Api函数执行结果
     /// </summary>
-    public struct SActionResult
+    public struct SActionResult<T>
     {
         /// <summary>
         /// 是否成功
@@ -210,17 +210,17 @@ namespace CommonLib.Win32Api
         /// <summary>
         /// 执行结果信息
         /// </summary>
-        public string Message { get; private set; }
+        public T Content { get; private set; }
 
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="Flag"></param>
         /// <param name="Message"></param>
-        public SActionResult(bool Flag, string Message)
+        public SActionResult(bool Flag, T Content)
         {
             this.Flag = Flag;
-            this.Message = Message;
+            this.Content = Content;
         }
     }
 }
