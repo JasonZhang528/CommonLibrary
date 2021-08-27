@@ -1,6 +1,11 @@
-﻿using System;
+﻿using Microsoft.CSharp;
+using System;
+using System.CodeDom;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,14 +30,6 @@ namespace CommonLib.WebService
         /// <returns></returns>
         public static WebServiceHelper GetInstance() => wsHelper ?? new();
 
-        /// <summary>
-        /// 静态缓存字典，速度提升至8倍
-        /// </summary>
-        private static Dictionary<string, object> _webServiceConfig = new Dictionary<string, object>();
-
-        //获取WSDL
-        private static readonly WebClient wc = new WebClient();
-
         /// < summary>
         /// 动态调用web服务
         /// </summary>
@@ -41,97 +38,139 @@ namespace CommonLib.WebService
         /// < param name="methodname">方法名</param>
         /// < param name="args">参数</param>
         /// < returns></returns>
-        public static object InvokeWebService(this string url, string methodname, object[] args, string classname = "")
+        public void InvokeWebService(string url, string methodname, params object[] args)
         {
-            string key = $"{url}_{methodname}";//缓存Key唯一标识
-            Type webService;
-            if (!_webServiceConfig.ContainsKey(key))
+            url = CheckURL(url);
+            HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(new Uri(url));
+
+            HttpWebResponse webResponse = null;
+            switch (requestMode)
             {
-                string @namespace = "EnterpriseServerBase.WebService.DynamicWebCalling";
-                //classname 一般自己指定 如果有些地址是http://www.webxml.com.cn/WebServices/WeatherWS?wsdl 就会调用失败
-                if ((classname == null) || (classname == ""))
+                case ERequestMode.Get:
+                    webResponse = GetRequest(webRequest, timeout);
+                    break;
+                case ERequestMode.Post:
+                    webResponse = PostRequest(webRequest, parameters, timeout, requestCoding);
+                    break;
+            }
+
+            if (webResponse != null && webResponse.StatusCode == HttpStatusCode.OK)
+            {
+                using (Stream newStream = webResponse.GetResponseStream())
                 {
-                    classname = GetWsClassName(url);
-                }
-                try
-                {
-                    Stream stream = wc.OpenRead(url);
-                    ServiceDescription sd = ServiceDescription.Read(stream);
-                    ServiceDescriptionImporter sdi = new ServiceDescriptionImporter();
-                    sdi.AddServiceDescription(sd, "", "");
-                    CodeNamespace cn = new CodeNamespace(@namespace);
-                    CodeCompileUnit ccu = new CodeCompileUnit();
-                    ccu.Namespaces.Add(cn);
-                    sdi.Import(cn, ccu);
-                    CSharpCodeProvider icc = new CSharpCodeProvider();
-                    CompilerParameters cplist = new CompilerParameters
-                    {
-                        GenerateExecutable = false,
-                        GenerateInMemory = true
-                    };
-                    cplist.ReferencedAssemblies.Add("System.dll");
-                    cplist.ReferencedAssemblies.Add("System.XML.dll");
-                    cplist.ReferencedAssemblies.Add("System.Web.Services.dll");
-                    cplist.ReferencedAssemblies.Add("System.Data.dll");
-                    CompilerResults compiler = icc.CompileAssemblyFromDom(cplist, ccu);
-                    icc.Dispose();
-                    if (compiler.Errors.HasErrors)
-                    {
-                        System.Text.StringBuilder sb = new System.Text.StringBuilder();
-                        foreach (CompilerError ce in compiler.Errors)
+                    if (newStream != null)
+                        using (StreamReader reader = new StreamReader(newStream, responseCoding))
                         {
-                            sb.Append(ce.ToString());
-                            sb.Append(Environment.NewLine);
+                            string result = reader.ReadToEnd();
+                            return result;
                         }
-                        throw new Exception(sb.ToString());
-                    }
-                    System.Reflection.Assembly assembly = compiler.CompiledAssembly;
-                    Type t = assembly.GetType(@namespace + "." + classname, true, true);
-                    webService = t;
-                    _webServiceConfig.Add(key, webService);//加入缓存
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception(ex.Message);
                 }
             }
-            else
-            {
-                webService = _webServiceConfig[key] as Type;//获取缓存的数据
-            }
-            if (webService != null)
-            {
-                object obj = Activator.CreateInstance(webService);
-                System.Reflection.MethodInfo mi = webService.GetMethod(methodname);
-                if (mi != null)
-                {
-                    return mi.Invoke(obj, args);
-                }
-                throw new Exception($"找不到{methodname}这个方法，调用失败");
-            }
-            else
-            {
-                throw new Exception($"WebService 对象为空，调用失败");
-            }
+            return null;
         }
 
         /// <summary>
-        /// 获取wsdl类名称
+        /// 检查URL路径
         /// </summary>
-        /// <param name="wsUrl">wsdl地址</param>
+        /// <param name="url"></param>
         /// <returns></returns>
-        private static string GetWsClassName(string wsUrl)
+        private string CheckURL(string url)
         {
-            string[] parts = wsUrl.Split('/');
-            string[] pps = parts[parts.Length - 1].Split('.');//classname 一般自己指定 原因是因为在这里
-            return pps[0];
+            if (string.IsNullOrWhiteSpace(url))
+                throw new ArgumentNullException("URL地址不可以为空！");
+            if (url.StartsWith("http://", StringComparison.CurrentCultureIgnoreCase))
+                return url;
+            return string.Format("http://{0}", url);
         }
+
         /// <summary>
-        /// 清空缓存
+        /// get 请求指定地址返回响应数据
         /// </summary>
-        public static void ClearCache()
+        /// <param name="webRequest">请求</param>
+        /// <param name="timeout">请求超时时间（毫秒）</param>
+        /// <returns>返回：响应信息</returns>
+        private HttpWebResponse GetRequest(HttpWebRequest webRequest, int timeout)
         {
-            _webServiceConfig.Clear();
+            try
+            {
+                webRequest.Accept = "text/html, application/xhtml+xml, application/json, text/javascript, */*; q=0.01";
+                webRequest.Headers.Add("Accept-Language", "zh-cn,en-US,en;q=0.5");
+                webRequest.Headers.Add("Cache-Control", "no-cache");
+                webRequest.UserAgent = "DefaultUserAgent";
+                webRequest.Timeout = timeout;
+                webRequest.Method = "GET";
+
+                // 接收返回信息
+                HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse();
+                return webResponse;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
+
+
+        /// <summary>
+        /// post 请求指定地址返回响应数据
+        /// </summary>
+        /// <param name="webRequest">请求</param>
+        /// <param name="parameters">传入参数</param>
+        /// <param name="timeout">请求超时时间（毫秒）</param>
+        /// <param name="requestCoding">请求编码</param>
+        /// <returns>返回：响应信息</returns>
+        private HttpWebResponse PostRequest(HttpWebRequest webRequest, Dictionary<string, string> parameters, int timeout, Encoding requestCoding)
+        {
+            try
+            {
+                // 拼接参数
+                string postStr = string.Empty;
+                if (parameters != null)
+                {
+                    parameters.All(o =>
+                    {
+                        if (string.IsNullOrEmpty(postStr))
+                            postStr = string.Format("{0}={1}", o.Key, o.Value);
+                        else
+                            postStr += string.Format("&{0}={1}", o.Key, o.Value);
+
+                        return true;
+                    });
+                }
+
+                byte[] byteArray = requestCoding.GetBytes(postStr);
+                webRequest.Accept = "text/html, application/xhtml+xml, application/json, text/javascript, */*; q=0.01";
+                webRequest.Headers.Add("Accept-Language", "zh-cn,en-US,en;q=0.5");
+                webRequest.Headers.Add("Cache-Control", "no-cache");
+                webRequest.UserAgent = "DefaultUserAgent";
+                webRequest.Timeout = timeout;
+                webRequest.ContentType = "application/x-www-form-urlencoded";
+                webRequest.ContentLength = byteArray.Length;
+                webRequest.Method = "POST";
+
+                // 将参数写入流
+                using (Stream newStream = webRequest.GetRequestStream())
+                {
+                    newStream.Write(byteArray, 0, byteArray.Length);
+                    newStream.Close();
+                }
+
+                // 接收返回信息
+                HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse();
+                return webResponse;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 方法请求方式
+    /// </summary>
+    public enum RequestMethod
+    {
+        GET, POST
     }
 }
