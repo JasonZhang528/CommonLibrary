@@ -1,4 +1,5 @@
-﻿using CommonLib.Models;
+﻿using CommonLib.Encryption;
+using CommonLib.Models;
 using CommonLib.ReflectObject;
 using CommonLib.Win32Api;
 using Newtonsoft.Json;
@@ -13,10 +14,10 @@ namespace Test
         {
             Console.WriteLine("Hello World!");
 
-            var rtemp = Win32ApiHelper.IsExistWindow("微信", null);
-            int isSucceed = Win32ApiHelper.ShowWindowMinimized(rtemp);
-
-
+            var encryptor = Encryptor.GetInstance();
+            encryptor.DesKey = "abcdefgh";
+            string ss = encryptor.DesEncrypt("TestText");
+            string s1s = encryptor.DesDecrypt(ss);
             Console.ReadKey();
         }
     }

@@ -102,13 +102,14 @@ namespace CommonLib.Encryption
         /// DES加密
         /// </summary>
         /// <param name="text">需要加密的明文</param>
+        /// <param name="keyLen">密钥长度</param>
         /// <remarks>
         /// <para>DES加密特点：</para>
         /// <para>1.加密后能解密回原文，加密key和解密key是同一个</para>
         /// <para>2.加密解密的速度快，问题是密钥的安全性</para>
         /// </remarks>
         /// <returns>密文</returns>
-        public string DesEncrypt(string text)
+        public string DesEncrypt(string text, int keyLen = 8)
         {
             if (string.IsNullOrWhiteSpace(DesKey))
             {
@@ -117,8 +118,8 @@ namespace CommonLib.Encryption
             DESCryptoServiceProvider dsp = new DESCryptoServiceProvider();
             using (MemoryStream memStream = new MemoryStream())
             {
-                byte[] _rgbKey = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, 8));
-                byte[] _rgbIV = ASCIIEncoding.ASCII.GetBytes(DesKey.Insert(0, "w").Substring(0, 8));
+                byte[] _rgbKey = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, keyLen));
+                byte[] _rgbIV = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, keyLen));
                 CryptoStream crypStream = new CryptoStream(memStream, dsp.CreateEncryptor(_rgbKey, _rgbIV), CryptoStreamMode.Write);
                 StreamWriter sWriter = new StreamWriter(crypStream);
                 sWriter.Write(text);
@@ -133,13 +134,14 @@ namespace CommonLib.Encryption
         /// DES解密
         /// </summary>
         /// <param name="encryptText">需要解密的密文</param>
+        /// <param name="keyLen">密钥长度</param>
         /// <remarks>
         /// <para>DES加密特点：</para>
         /// <para>1.加密后能解密回原文，加密key和解密key是同一个</para>
         /// <para>2.加密解密的速度快，问题是密钥的安全性</para>
         /// </remarks>
         /// <returns>明文</returns>
-        public string DesDecrypt(string encryptText)
+        public string DesDecrypt(string encryptText, int keyLen = 8)
         {
             if (string.IsNullOrWhiteSpace(DesKey))
             {
@@ -149,8 +151,8 @@ namespace CommonLib.Encryption
             byte[] buffer = Convert.FromBase64String(encryptText);
             using (MemoryStream memStream = new MemoryStream())
             {
-                byte[] _rgbKey = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, 8));
-                byte[] _rgbIV = ASCIIEncoding.ASCII.GetBytes(DesKey.Insert(0, "w").Substring(0, 8));
+                byte[] _rgbKey = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, keyLen));
+                byte[] _rgbIV = ASCIIEncoding.ASCII.GetBytes(DesKey.Substring(0, keyLen));
                 CryptoStream crypStream = new CryptoStream(memStream, dsp.CreateDecryptor(_rgbKey, _rgbIV), CryptoStreamMode.Write);
                 crypStream.Write(buffer, 0, buffer.Length);
                 crypStream.FlushFinalBlock();
