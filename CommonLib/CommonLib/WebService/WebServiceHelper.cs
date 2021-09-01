@@ -2,12 +2,8 @@
 using System;
 using System.CodeDom;
 using System.CodeDom.Compiler;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CommonLib.WebService
 {
@@ -35,38 +31,61 @@ namespace CommonLib.WebService
         /// </summary>
         /// < param name="url">WSDL服务地址</param>
         /// < param name="classname">类名</param>
-        /// < param name="methodname">方法名</param>
+        /// < param name="methodName">方法名</param>
         /// < param name="args">参数</param>
         /// < returns></returns>
-        public void InvokeWebService(string url, string methodname, params object[] args)
+        public void InvokeWebService(string url, string methodName, RequestMethod methodType, params object[] args)
         {
-            url = CheckURL(url);
-            HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(new Uri(url));
+            string @namespace = "EnterpriseServerBase.WebService.DynamicWebCalling";
+            methodName = string.IsNullOrWhiteSpace(methodName) ? wsHelper.GetWsClassName(url) : methodName;
 
-            HttpWebResponse webResponse = null;
-            switch (requestMode)
-            {
-                case ERequestMode.Get:
-                    webResponse = GetRequest(webRequest, timeout);
-                    break;
-                case ERequestMode.Post:
-                    webResponse = PostRequest(webRequest, parameters, timeout, requestCoding);
-                    break;
-            }
-
-            if (webResponse != null && webResponse.StatusCode == HttpStatusCode.OK)
-            {
-                using (Stream newStream = webResponse.GetResponseStream())
+            try
+            {                   
+                //获取WSDL   
+                WebClient wc = new WebClient();
+                Stream stream = wc.OpenRead(url + "?WSDL");
+                ServiceDescription sd = ServiceDescription.Read(stream);
+                ServiceDescriptionImporter sdi = new ServiceDescriptionImporter();
+                sdi.AddServiceDescription(sd, "", "");
+                CodeNamespace cn = new CodeNamespace(@namespace);
+                //生成客户端代理类代码          
+                CodeCompileUnit ccu = new CodeCompileUnit();
+                ccu.Namespaces.Add(cn);
+                sdi.Import(cn, ccu);
+                CSharpCodeProvider icc = new CSharpCodeProvider();
+                //设定编译参数                 
+                CompilerParameters cplist = new CompilerParameters();
+                cplist.GenerateExecutable = false;
+                cplist.GenerateInMemory = true;
+                cplist.ReferencedAssemblies.Add("System.dll");
+                cplist.ReferencedAssemblies.Add("System.XML.dll");
+                cplist.ReferencedAssemblies.Add("System.Web.Services.dll");
+                cplist.ReferencedAssemblies.Add("System.Data.dll");
+                //编译代理类                 
+                CompilerResults cr = icc.CompileAssemblyFromDom(cplist, ccu);
+                if (true == cr.Errors.HasErrors)
                 {
-                    if (newStream != null)
-                        using (StreamReader reader = new StreamReader(newStream, responseCoding))
-                        {
-                            string result = reader.ReadToEnd();
-                            return result;
-                        }
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    foreach (System.CodeDom.Compiler.CompilerError ce in cr.Errors)
+                    {
+                        sb.Append(ce.ToString());
+                        sb.Append(System.Environment.NewLine);
+                    }
+                    throw new Exception(sb.ToString());
                 }
+                //生成代理实例，并调用方法   
+                System.Reflection.Assembly assembly = cr.CompiledAssembly;
+                Type t = assembly.GetType(@namespace + "." + classname, true, true);
+                object obj = Activator.CreateInstance(t);
+                System.Reflection.MethodInfo mi = t.GetMethod(methodName);
+                return mi.Invoke(obj, args);
+                // PropertyInfo propertyInfo = type.GetProperty(propertyname);     
+                //return propertyInfo.GetValue(obj, null); 
             }
-            return null;
+            catch (Exception ex)
+            {
+                throw new Exception(ex.InnerException.Message, new Exception(ex.InnerException.StackTrace));
+            }
         }
 
         /// <summary>
@@ -83,86 +102,11 @@ namespace CommonLib.WebService
             return string.Format("http://{0}", url);
         }
 
-        /// <summary>
-        /// get 请求指定地址返回响应数据
-        /// </summary>
-        /// <param name="webRequest">请求</param>
-        /// <param name="timeout">请求超时时间（毫秒）</param>
-        /// <returns>返回：响应信息</returns>
-        private HttpWebResponse GetRequest(HttpWebRequest webRequest, int timeout)
+        private string GetWsClassName(string wsUrl)
         {
-            try
-            {
-                webRequest.Accept = "text/html, application/xhtml+xml, application/json, text/javascript, */*; q=0.01";
-                webRequest.Headers.Add("Accept-Language", "zh-cn,en-US,en;q=0.5");
-                webRequest.Headers.Add("Cache-Control", "no-cache");
-                webRequest.UserAgent = "DefaultUserAgent";
-                webRequest.Timeout = timeout;
-                webRequest.Method = "GET";
-
-                // 接收返回信息
-                HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse();
-                return webResponse;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-
-
-        /// <summary>
-        /// post 请求指定地址返回响应数据
-        /// </summary>
-        /// <param name="webRequest">请求</param>
-        /// <param name="parameters">传入参数</param>
-        /// <param name="timeout">请求超时时间（毫秒）</param>
-        /// <param name="requestCoding">请求编码</param>
-        /// <returns>返回：响应信息</returns>
-        private HttpWebResponse PostRequest(HttpWebRequest webRequest, Dictionary<string, string> parameters, int timeout, Encoding requestCoding)
-        {
-            try
-            {
-                // 拼接参数
-                string postStr = string.Empty;
-                if (parameters != null)
-                {
-                    parameters.All(o =>
-                    {
-                        if (string.IsNullOrEmpty(postStr))
-                            postStr = string.Format("{0}={1}", o.Key, o.Value);
-                        else
-                            postStr += string.Format("&{0}={1}", o.Key, o.Value);
-
-                        return true;
-                    });
-                }
-
-                byte[] byteArray = requestCoding.GetBytes(postStr);
-                webRequest.Accept = "text/html, application/xhtml+xml, application/json, text/javascript, */*; q=0.01";
-                webRequest.Headers.Add("Accept-Language", "zh-cn,en-US,en;q=0.5");
-                webRequest.Headers.Add("Cache-Control", "no-cache");
-                webRequest.UserAgent = "DefaultUserAgent";
-                webRequest.Timeout = timeout;
-                webRequest.ContentType = "application/x-www-form-urlencoded";
-                webRequest.ContentLength = byteArray.Length;
-                webRequest.Method = "POST";
-
-                // 将参数写入流
-                using (Stream newStream = webRequest.GetRequestStream())
-                {
-                    newStream.Write(byteArray, 0, byteArray.Length);
-                    newStream.Close();
-                }
-
-                // 接收返回信息
-                HttpWebResponse webResponse = (HttpWebResponse)webRequest.GetResponse();
-                return webResponse;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
+            string[] parts = wsUrl.Split('/');
+            string[] pps = parts[parts.Length - 1].Split('.');
+            return pps[0];
         }
     }
 
